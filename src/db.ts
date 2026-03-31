@@ -17,13 +17,68 @@ const UserModel = mongoose.model("User", UserSchema);
 
 export default UserModel;
 
-const CotentSchema = new Schema ({
-    tittle: String,
-    link : String,
-    tags: [{type: mongoose.Types.ObjectId, ref: 'Tag'}],
-    userId : [{type: mongoose.Types.ObjectId, ref: 'user', required : true}],
-    authorId : {type: mongoose.Types.ObjectId , ref: 'user' , required: true},
-    type: {type : String, required: true}
-})
+const CotentSchema = new Schema({
+    title: {
+        type: String,
+        required: true
+    },
 
+    link: {
+        type: String,
+        required: true
+    },
+
+    type: {
+        type: String,
+        required: true
+    },
+
+    userId: {
+        type: mongoose.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+
+    tags: [
+        {
+            type: mongoose.Types.ObjectId,
+            ref: "Tag"
+        }
+    ]
+}, { timestamps: true });
+
+const LinkSchema = new Schema({
+    hash: {
+        type: String,
+        required: true,
+        unique: true
+    },
+
+    link: {
+        type: String,
+        required: true
+    },
+
+    type: {
+        type: String,
+        required: true
+    },
+
+    userId: {
+        type: mongoose.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+
+    tags: [
+        {
+            type: mongoose.Types.ObjectId,
+            ref: "Tag"
+        }
+    ]
+});
+
+
+
+export const LinkModel  = model("Links" , LinkSchema)
 export const ContentModel = model("Content" , CotentSchema);
