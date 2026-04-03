@@ -1,33 +1,32 @@
 import express, { Request } from "express";
-import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import UserModel, { ContentModel, LinkModel } from "./db.js";
 import { JWT_PASSWORD } from "./config.js";
 import { userMiddleware } from "./middleware.js";
 import { Random } from "./utils.js";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
-// add this
 interface AuthRequest extends Request {
     userId?: string;
 }
 
-app.post("/api/v1/brain/signin", async (req,res) => {
+app.post("/api/v1/brain/signin", async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
 
-    const existinguser  = await UserModel.findOne({
+    const existinguser = await UserModel.findOne({
         username,
         password
     });
 
-    if(existinguser) {
+    if (existinguser) {
         const token = jwt.sign({
             id: existinguser._id
-        },
-        JWT_PASSWORD);
+        }, JWT_PASSWORD);
 
         res.json({ token });
     } else {
@@ -37,9 +36,9 @@ app.post("/api/v1/brain/signin", async (req,res) => {
     }
 });
 
-app.post("/api/v1/brain/signup", async (req,res) => {
+app.post("/api/v1/brain/signup", async (req, res) => {
     const username = req.body.username;
-    const password = req.body.password; //  fixed
+    const password = req.body.password;
 
     try {
         await UserModel.create({
@@ -50,65 +49,65 @@ app.post("/api/v1/brain/signup", async (req,res) => {
         res.json({
             message: "User Signed Up"
         });
-    } catch(error) {
+    } catch (error) {
         res.status(411).json({
             message: "User Already Exist"
         });
     }
 });
 
-app.post("/api/v1/brain/content", userMiddleware , async (req: AuthRequest,res) => {
+app.post("/api/v1/brain/content", userMiddleware, async (req: AuthRequest, res) => {
     const link = req.body.link;
-    const type  = req.body.type;
+    const type = req.body.type;
+    const title = req.body.title;  // ✅ added title
 
     await ContentModel.create({
         link,
         type,
-        userId : req.userId, //  fixed
+        title,             // ✅ added title
+        userId: req.userId,
         tags: []
     });
 
     res.json({
-        message: "Content  added"
+        message: "Content added"
     });
 });
 
-app.get("/api/v1/brain/content" , userMiddleware , async (req: AuthRequest,res) => {
-    const userId = req.userId; //  fixed
+app.get("/api/v1/brain/content", userMiddleware, async (req: AuthRequest, res) => {
+    const userId = req.userId;
 
     const content = await ContentModel.find({
-        userId : userId
+        userId: userId
     }).populate("userId", "username");
 
     res.json({ content });
 });
 
-app.delete("/api/v1/brain/delete" ,userMiddleware, async (req: AuthRequest,res) => {
+app.delete("/api/v1/brain/delete", userMiddleware, async (req: AuthRequest, res) => {
     const contentId = req.body.contentId;
 
     await ContentModel.deleteMany({
-        _id: contentId, //  fixed
-        userId : req.userId
+        _id: contentId,
+        userId: req.userId
     });
 
     res.json({
-        message: "Deleted "
+        message: "Deleted"
     });
 });
 
-//  removed duplicate empty route
-
-app.post("/api/v1/brain/share", userMiddleware, async (req: AuthRequest,res) => {
+app.post("/api/v1/brain/share", userMiddleware, async (req: AuthRequest, res) => {
     const share = req.body.share;
 
-    if(share) {
+    if (share) {
         await LinkModel.create({
-            userId : req.userId, //  fixed
-            hash : Random(10)
+            userId: req.userId,
+            hash: Random(10)
         });
     } else {
         await LinkModel.deleteOne({
-            userId : req.userId,
+            userId: req.userId,
         });
     }
 
@@ -117,16 +116,16 @@ app.post("/api/v1/brain/share", userMiddleware, async (req: AuthRequest,res) => 
     });
 });
 
-app.post("/api/v1/brain/:shareLink", async (req,res) => {
-    const hash  = req.params.shareLink;
+app.post("/api/v1/brain/:shareLink", async (req, res) => {
+    const hash = req.params.shareLink;
 
     const link = await LinkModel.findOne({
-        hash: hash 
+        hash: hash
     });
 
-    if(!link) {
-        return res.status(411).json({ //  fixed
-            message : "Sorry inCorrect input"
+    if (!link) {
+        return res.status(411).json({
+            message: "Sorry incorrect input"
         });
     }
 
@@ -134,17 +133,17 @@ app.post("/api/v1/brain/:shareLink", async (req,res) => {
         userId: link.userId
     });
 
-    const user = await UserModel.findById(link.userId); //  fixed
+    const user = await UserModel.findById(link.userId);
 
-    if(!user) {
-        return res.status(401).json({ //  fixed
-            message: "User not found , error should ideolly not happened "
+    if (!user) {
+        return res.status(401).json({
+            message: "User not found"
         });
     }
 
     res.json({
         username: user.username,
-        content : content
+        content: content
     });
 });
 
